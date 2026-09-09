@@ -1,26 +1,19 @@
-個人工作管理系統 v6.0
+個人工作管理系統 v6.1
 
-【GitHub Pages 上傳】
-只需上傳：
-1. index.html
-2. sw.js
-3. manifest.webmanifest
-4. icon-192.png
-5. icon-512.png
+GitHub Pages 上傳檔案：
+- index.html
+- sw.js
+- manifest.webmanifest
+- icon-192.png
+- icon-512.png
 
-Code.gs 不需要上傳 GitHub；它是提供給 Apps Script 使用。
+本版新增：
+1. 首頁「最近異動」：顯示修改、完成、取消完成、刪除等最近異動。
+2. 手機固定底部列：今日／日曆／新增／全部／日誌／更多，含安全區與目前頁面高亮。
+3. Apple 日曆匯出：單筆工作可輸出 .ics；工作日曆可一次匯出所有未來未完成工作。
+4. 手機「更多」底部面板：搜尋／報告／設定。
 
-【Apps Script】
-1. 開啟綁定 Google Sheet 的 Apps Script。
-2. 將 Code.gs 全部替換成此資料夾內 Code.gs。
-3. 儲存。
-4. 部署 → 管理部署作業 → 編輯 → 新版本 → 部署。
-5. 保留原本 /exec 網址即可。
-6. 打開 /exec?action=ping，確認 version 是 6.0.0。
-
-【Google Sheets】
-可直接使用隨附的 Google_Sheets_v6_資料庫範本.xlsx，上傳 Google Drive 後以 Google 試算表開啟。
-也可以使用空白 Google Sheet；第一次呼叫 API 時 Code.gs 會自動建立：工作、案件、歷程、操作紀錄、設定。
-
-【安全建議】
-更新前先複製一份現有 Google Sheet 備份。v6 採軟刪除：工作/歷程刪除後仍保留 deletedAt，前端不再顯示。
+注意：
+- Apple 日曆功能目前是安全的 .ics 匯出，不是自動雙向同步。
+- 本版不需要修改 Apps Script 與 Google Sheets；API 仍為 6.0.0。
+- GitHub 更新後若手機仍看到舊畫面，關閉 PWA 後重開；本版 sw.js 已更新快取版本。
