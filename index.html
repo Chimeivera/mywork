@@ -121,24 +121,67 @@ input:disabled,select:disabled,textarea:disabled,button:disabled{color:#333333;o
   border:1px solid #e5ddec;border-radius:999px;padding:3px 7px;
   pointer-events:none;
 }
-</style></head><body><div class="app"><aside class="side"><div class="brand"><div class="logo">✓</div><span>個人工作管理系統</span></div><div class="sub">Daily × Project × Follow-up</div><div class="nav"><button class="active" data-view="dashboard">🏠 今日總覽</button><button data-view="tasks">✅ 工作清單</button><button data-view="projects">🗂️ 案件追蹤</button><button data-view="history">🕘 歷史紀錄</button><button data-view="report">📊 月報彙整</button><button data-view="settings">🔔 提醒設定</button></div><div class="install-tip">手機可加入主畫面，像 App 一樣開啟。<br>網頁與 App 使用同一套介面。</div></aside><main class="main">
+
+/* v5：工作日誌、歷程、搜尋、報告 */
+.journal-day{border:1px solid var(--line);border-radius:16px;background:#fff;margin:12px 0;overflow:hidden}
+.journal-head{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 16px;background:#f4eef9;border-bottom:1px solid var(--line)}
+.journal-date{font-size:20px;font-weight:900}
+.journal-period{padding:12px 16px;border-bottom:1px dashed var(--line)}
+.journal-period:last-child{border-bottom:0}
+.journal-period-title{font-weight:900;margin-bottom:8px}
+.log-item{padding:10px 0;border-top:1px solid #f0ebf4}
+.log-item:first-of-type{border-top:0}
+.log-title{font-weight:900}
+.log-grid{display:grid;grid-template-columns:85px 1fr;gap:5px 10px;margin-top:6px;font-size:13px}
+.log-grid .k{font-weight:800;color:#333}
+.log-grid .v{line-height:1.55}
+.search-result{padding:14px;border:1px solid var(--line);border-radius:14px;margin:10px 0;background:#fff}
+.search-hit{background:#fff5cf;padding:0 2px;border-radius:3px}
+.report-actions{display:flex;gap:8px;flex-wrap:wrap}
+.report-note{font-size:13px;line-height:1.6}
+.log-button{background:#f0e9f7;border:0;color:#251739}
+.small-note{font-size:12px;color:#333}
+.modal-card.log-modal{max-width:720px}
+@media(max-width:700px){
+  .journal-head{align-items:flex-start;flex-direction:column}
+  .log-grid{grid-template-columns:1fr}
+}
+
+</style></head><body><div class="app"><aside class="side"><div class="brand"><div class="logo">✓</div><span>個人工作管理系統</span></div><div class="sub">Daily × Project × Follow-up</div><div class="nav"><button class="active" data-view="dashboard">🏠 今日總覽</button><button data-view="tasks">✅ 工作清單</button><button data-view="projects">🗂️ 案件追蹤</button><button data-view="journal">📅 每日工作日誌</button><button data-view="history">🔎 完整歷程搜尋</button><button data-view="report">📊 報告與匯出</button><button data-view="settings">🔔 提醒設定</button></div><div class="install-tip">手機可加入主畫面，像 App 一樣開啟。<br>網頁與 App 使用同一套介面。</div></aside><main class="main">
 <section id="dashboard" class="view"><div class="top"><div class="title"><h1>今天要處理什麼？</h1><p id="todayText"></p><div class="syncbar"><span id="syncDot" class="sync-dot"></span><span id="syncText">正在連接 Google Sheet…</span><button class="btn small" type="button" onclick="manualSync()">↻ 同步</button></div></div><div class="actions"><button class="btn ghost" id="installBtn" style="display:none">📲 安裝 App</button><button class="btn" id="notifyBtn">🔔 開啟通知</button><button class="btn primary" onclick="openTaskForm()">＋ 新增工作</button></div></div><div id="reminderNotice"></div><div class="panel"><h2>⚡ 快速記錄</h2><div class="quick"><input id="quickInput" placeholder="想到什麼先記下來，例如：下週追蹤 PGY 契約"><button class="btn primary" onclick="quickAdd()">記下來</button></div></div><div class="grid4"><div class="kpi"><div class="label">📌 今日待辦</div><div class="num" id="kToday">0</div><small>預計處理／截止／追蹤</small></div><div class="kpi"><div class="label">⏳ 等待回覆</div><div class="num" id="kWaiting">0</div><small>需要追蹤</small></div><div class="kpi"><div class="label">✅ 本週完成</div><div class="num" id="kDone">0</div><small>已完成事項</small></div><div class="kpi"><div class="label">🚨 逾期未結</div><div class="num" id="kOverdue">0</div><small>優先處理</small></div></div><div class="panel"><h2>🔥 今天一定要處理</h2><div id="todayTasks"></div></div><div class="panel"><h2>👀 這週要注意</h2><div id="weekTasks"></div></div><div class="panel"><h2>⏳ 等待他人回覆</h2><div id="waitingTasks"></div></div></section>
 <section id="tasks" class="view hidden"><div class="top"><div class="title"><h1>工作清單</h1><p>快速記錄、分類、追蹤，不讓待辦散落。</p></div><button class="btn primary" onclick="openTaskForm()">＋ 新增工作</button></div><div class="panel"><div class="toolbar"><input id="searchInput" placeholder="搜尋工作事項、備註…"><select id="filterCategory"></select><select id="filterStatus"><option value="">全部狀態</option><option>待處理</option><option>進行中</option><option>等待回覆</option><option>已完成</option></select></div><div id="taskList"></div></div></section>
-<section id="projects" class="view hidden"><div class="top"><div class="title"><h1>案件追蹤</h1><p>同一案件的處理過程用時間軸串起來。</p></div></div><div class="panel"><div id="projectList"></div></div></section>
-<section id="history" class="view hidden"><div class="top"><div class="title"><h1>歷史紀錄</h1><p>任何關鍵字都能回查。</p></div></div><div class="panel"><div class="toolbar"><input id="historySearch" placeholder="搜尋歷史紀錄"></div><div id="historyList"></div></div></section>
-<section id="report" class="view hidden"><div class="top"><div class="title"><h1>月報彙整</h1><p>真正依月份整理成果、未結與等待回覆。</p></div></div><div class="panel"><div class="toolbar"><input type="month" id="reportMonth"></div><div id="reportBody"></div></div></section>
+<section id="projects" class="view hidden"><div class="top"><div class="title"><h1>案件追蹤</h1><p>同一案件的每次處理紀錄都保留，依日期形成完整時間軸。</p></div></div><div class="panel"><div class="toolbar"><input id="projectSearch" placeholder="搜尋案件、工作或處理內容"></div><div id="projectList"></div></div></section>
+<section id="journal" class="view hidden"><div class="top"><div class="title"><h1>每日工作日誌</h1><p>按「實際處理日期」回看那一天做了什麼，不使用建立日期混淆。</p></div></div><div class="panel"><div class="toolbar"><button class="btn" type="button" onclick="moveJournalDate(-1)">← 前一天</button><input type="date" id="journalDate"><button class="btn" type="button" onclick="moveJournalDate(1)">後一天 →</button><button class="btn" type="button" onclick="setJournalToday()">今天</button><input id="journalSearch" placeholder="搜尋當日工作、處理內容、下一步"></div><div id="journalList"></div></div></section>
+<section id="history" class="view hidden"><div class="top"><div class="title"><h1>完整歷程搜尋</h1><p>工作名稱、案件、處理內容、下一步、等待對象都可以搜尋。</p></div></div><div class="panel"><div class="toolbar"><input id="historySearch" placeholder="例如：醫師公會、A81、補助、PGY"><input type="date" id="historyStart"><input type="date" id="historyEnd"><select id="historyCategory"></select><button class="btn" type="button" onclick="clearHistoryFilters()">清除條件</button></div><div id="historyList"></div></div></section>
+<section id="report" class="view hidden"><div class="top"><div class="title"><h1>報告與匯出</h1><p>依實際處理紀錄整理月報，並可匯出清楚的 Excel 工作日誌。</p></div><div class="report-actions"><button class="btn primary" type="button" onclick="exportJournalExcel(this)">⬇ 匯出 Excel 工作日誌</button></div></div><div class="panel"><div class="toolbar"><input type="month" id="reportMonth"></div><div id="reportBody"></div></div></section>
 <section id="settings" class="view hidden"><div class="top"><div class="title"><h1>提醒與同步設定</h1><p>網頁與手機 App 共用 Google Sheet 資料庫。</p></div></div>
 <div class="panel"><h2>☁️ Google Sheet 同步</h2><div class="sync-note"><div class="row"><span id="settingsSyncDot" class="sync-dot"></span><b id="settingsSyncText">正在檢查連線…</b></div><p class="muted" style="margin-bottom:8px">新增、編輯、完成與刪除工作都會同步至 Google Sheet。若暫時離線，系統會先保存在此裝置，恢復連線後再補同步。</p><div class="row"><button class="btn primary" onclick="manualSync()">↻ 立即同步</button><button class="btn" id="importOldBtn" onclick="importOldLocalData()">匯入舊版本機資料</button></div><div id="oldDataHint" class="muted" style="margin-top:8px"></div></div></div>
 <div class="panel"><h2>🔔 App／瀏覽器通知</h2><p class="muted">當系統開啟時，會檢查「今天到期、追蹤日到期、逾期」的工作。安裝成 App 後也可使用相同通知權限。</p><button class="btn primary" onclick="requestNotify()">允許通知</button></div>
 <div class="panel"><h2>✉️ Email 提醒</h2><p class="muted">Google Apps Script 後端已接上。下一階段可加上每日 Email 摘要，自動列出今日必做、逾期、今天要追蹤的等待回覆，不需要開啟網頁也能收到。</p></div>
 <div class="panel"><h2>🧭 建議提醒規則</h2><div class="history-card"><b>一般工作</b><span class="muted">截止日當天提醒一次即可。</span></div><div class="history-card"><b>等待他人回覆</b><span class="muted">用「追蹤日」提醒，而不是每天催。</span></div><div class="history-card"><b>高優先工作</b><span class="muted">截止日前 1 天 + 當天提醒。</span></div><div class="history-card"><b>逾期未結</b><span class="muted">首頁持續顯示；Email 每日摘要持續列出。</span></div></div></section>
 </main></div>
-<div id="modal" class="modal hidden"><div class="panel modal-card"><div class="top" style="margin-bottom:12px"><div class="title"><h1 id="modalTitle" style="font-size:22px">新增工作</h1></div><button class="btn" onclick="closeTaskForm()">關閉</button></div><form id="taskForm" class="form"><input type="hidden" name="id"><div class="full"><label>工作事項</label><input name="title" required placeholder="例如：確認醫師公會餐敘補助金額"></div><div><label>工作類別</label><select name="category" id="categorySelect"></select></div><div><label>目前狀態</label><select name="status"><option>待處理</option><option>進行中</option><option>等待回覆</option><option>已完成</option></select></div><div><label>優先程度</label><select name="priority"><option>一般</option><option>中</option><option>高</option></select></div><div><label>📅 我要做的日期</label><input type="date" name="workDate"></div><div><label>🕒 處理時間（選填）</label><input type="time" name="workTime" step="60"></div><div><label>⏰ 截止日</label><input type="date" name="due"></div><div><label>追蹤日</label><input type="date" name="followup"></div><div><label>等待對象</label><input name="waitingFor" placeholder="例如：醫師公會、資訊室"></div><div><label>案件名稱（選填）</label><input name="project" placeholder="例如：醫師公會餐敘"></div><div class="full"><label>本次處理紀錄／下一步</label><textarea name="note" placeholder="已完成什麼、在等誰、下一步要做什麼"></textarea></div><div class="full" style="text-align:right"><button class="btn primary" type="submit">儲存工作</button></div></form></div></div>
+<div id="modal" class="modal hidden"><div class="panel modal-card"><div class="top" style="margin-bottom:12px"><div class="title"><h1 id="modalTitle" style="font-size:22px">新增工作</h1></div><button class="btn" onclick="closeTaskForm()">關閉</button></div><form id="taskForm" class="form"><input type="hidden" name="id"><div class="full"><label>工作事項</label><input name="title" required placeholder="例如：確認醫師公會餐敘補助金額"></div><div><label>工作類別</label><select name="category" id="categorySelect"></select></div><div><label>目前狀態</label><select name="status"><option>待處理</option><option>進行中</option><option>等待回覆</option><option>已完成</option></select></div><div><label>優先程度</label><select name="priority"><option>一般</option><option>中</option><option>高</option></select></div><div><label>📅 我要做的日期</label><input type="date" name="workDate"></div><div><label>🕒 處理時間（選填）</label><input type="time" name="workTime" step="60"></div><div><label>⏰ 截止日</label><input type="date" name="due"></div><div><label>追蹤日</label><input type="date" name="followup"></div><div><label>等待對象</label><input name="waitingFor" placeholder="例如：醫師公會、資訊室"></div><div><label>案件名稱（選填）</label><input name="project" placeholder="例如：醫師公會餐敘"></div><div class="full"><label>工作說明／目前狀況</label><textarea name="note" placeholder="這裡放目前最新說明；每次實際處理請使用「＋新增處理紀錄」，舊歷程才不會被覆蓋。"></textarea></div><div class="full" style="text-align:right"><button class="btn primary" type="submit">儲存工作</button></div></form></div></div>
+
+<div id="logModal" class="modal hidden"><div class="panel modal-card log-modal">
+  <div class="top" style="margin-bottom:12px"><div class="title"><h1 style="font-size:22px">＋ 新增處理紀錄</h1><p id="logTaskTitle"></p></div><button class="btn" type="button" onclick="closeLogForm()">關閉</button></div>
+  <form id="logForm" class="form">
+    <input type="hidden" name="taskId">
+    <div><label>處理日期</label><input type="date" name="logDate" required></div>
+    <div><label>處理時間（選填）</label><input type="time" name="logTime"></div>
+    <div class="full"><label>本次實際處理內容</label><textarea name="detail" required placeholder="例如：致電醫師公會確認補助金額，對方表示今日下午回覆。"></textarea></div>
+    <div class="full"><label>下一步／後續追蹤</label><textarea name="nextStep" placeholder="例如：若 9/11 前未回覆，再次致電確認。"></textarea></div>
+    <div><label>處理後狀態</label><select name="status"><option>待處理</option><option>進行中</option><option>等待回覆</option><option>已完成</option></select></div>
+    <div><label>等待對象（選填）</label><input name="waitingFor" placeholder="例如：醫師公會、資訊室"></div>
+    <div><label>下一次追蹤日（選填）</label><input type="date" name="followDate"></div>
+    <div class="full" style="text-align:right"><button class="btn primary" type="submit">儲存處理紀錄</button></div>
+  </form>
+</div>
+
 <script>
 const API_URL='https://script.google.com/macros/s/AKfycbwYCerWPXR_OJn91v-ftF4CUZPNnzsEDhGvrjLx7DFoLsZvN0LT_-F0DWh6cu9-x8XRWw/exec';
 const categories=['每月例行性作業','課程相關業務','師資培育業務','教學中心業務','醫學研究小組業務','公文相關業務','臨時交辦業務','採購業務','主管管理'];
 const CACHE_KEY='work_manager_cache_v3',QUEUE_KEY='work_manager_queue_v1',OLD_KEY='work_manager_tasks_v2';
-let tasks=JSON.parse(localStorage.getItem(CACHE_KEY)||'[]');let editId=null;let online=false;let syncing=false;
+let tasks=JSON.parse(localStorage.getItem(CACHE_KEY)||'[]');let logs=[];let editId=null;let online=false;let syncing=false;
 const $=id=>document.getElementById(id),todayISO=()=>{let d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 function localDate(s){if(!s)return null;let [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}
 function addDays(s,n){let d=localDate(s);d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)}
@@ -150,6 +193,18 @@ function clientId(){return (crypto&&crypto.randomUUID)?crypto.randomUUID():'id-'
 function dateOnly(v){return v?String(v).slice(0,10):''}
 function fromApi(r){return {id:String(r.id||''),title:r.title||'',category:r.category||'臨時交辦業務',status:r.status||'待處理',priority:r.priority||'一般',workDate:dateOnly(r.workDate),workTime:r.workTime||'',due:dateOnly(r.dueDate),followup:dateOnly(r.followDate),waitingFor:r.waitingFor||'',project:r.caseId||'',note:r.note||'',nextStep:r.nextStep||'',created:dateOnly(r.createdAt)||todayISO(),completed:dateOnly(r.completedAt)}}
 function toApi(t){return {id:t.id||'',title:t.title||'',category:t.category||'臨時交辦業務',status:t.status||'待處理',priority:t.priority||'一般',workDate:t.workDate||'',workTime:t.workTime||'',dueDate:t.due||'',followDate:t.followup||'',waitingFor:t.waitingFor||'',caseId:t.project||'',note:t.note||'',nextStep:t.nextStep||'',createdAt:t.created||'',updatedAt:'',completedAt:t.completed||''}}
+
+function fromApiLog(r){return {
+  id:String(r.id||''),taskId:String(r.taskId||''),project:r.caseId||'',title:r.title||'',
+  category:r.category||'',action:r.action||'處理紀錄',detail:r.detail||'',nextStep:r.nextStep||'',
+  status:r.status||'',waitingFor:r.waitingFor||'',logDate:dateOnly(r.logDate)||dateOnly(r.createdAt),
+  logTime:r.logTime||'',createdAt:r.createdAt||''
+}}
+function taskById(id){return tasks.find(t=>String(t.id)===String(id))}
+function weekdayZh(dateStr){let d=localDate(dateStr);return d?['日','一','二','三','四','五','六'][d.getDay()]:''}
+function periodOf(time){if(!time)return '未分時段';return time<'12:00'?'上午':'下午'}
+function displayLogTime(l){return l.logTime||''}
+
 function cache(){localStorage.setItem(CACHE_KEY,JSON.stringify(tasks))}
 function queue(){return JSON.parse(localStorage.getItem(QUEUE_KEY)||'[]')}
 function setQueue(q){localStorage.setItem(QUEUE_KEY,JSON.stringify(q))}
@@ -158,7 +213,7 @@ function setSync(ok,text,cls){online=ok;['syncDot','settingsSyncDot'].forEach(id
 async function apiGet(action='bootstrap'){let r=await fetch(API_URL+'?action='+encodeURIComponent(action)+'&_='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);let j=await r.json();if(!j.ok)throw new Error(j.message||'API 錯誤');return j}
 async function apiPost(payload){let r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});if(!r.ok)throw new Error('HTTP '+r.status);let j=await r.json();if(!j.ok)throw new Error(j.message||'API 錯誤');return j}
 async function flushQueue(){let q=queue();if(!q.length)return true;let remain=[];for(let p of q){try{await apiPost(p)}catch(e){remain.push(p);break}}if(remain.length){let idx=q.length-remain.length;remain=remain.concat(q.slice(idx+1));setQueue(remain);return false}setQueue([]);return true}
-async function loadRemote(showStatus=true){if(syncing)return;syncing=true;if(showStatus)setSync(false,'正在與 Google Sheet 同步…','busy');try{await flushQueue();let j=await apiGet('bootstrap');tasks=(j.tasks||[]).map(fromApi);cache();setSync(true,`已同步 Google Sheet・${tasks.length} 筆工作`,'ok');renderAll();checkOldDataHint();setTimeout(checkNotifications,300)}catch(e){let qn=queue().length;setSync(false,`目前使用本機資料${qn?`・${qn} 筆待同步`:''}`,'err');renderAll();console.error(e)}finally{syncing=false}}
+async function loadRemote(showStatus=true){if(syncing)return;syncing=true;if(showStatus)setSync(false,'正在與 Google Sheet 同步…','busy');try{await flushQueue();let j=await apiGet('bootstrap');tasks=(j.tasks||[]).map(fromApi);logs=(j.logs||[]).map(fromApiLog);cache();setSync(true,`已同步 Google Sheet・${tasks.length} 筆工作・${logs.length} 筆歷程`,'ok');renderAll();checkOldDataHint();setTimeout(checkNotifications,300)}catch(e){let qn=queue().length;setSync(false,`目前使用本機資料${qn?`・${qn} 筆待同步`:''}`,'err');renderAll();console.error(e)}finally{syncing=false}}
 async function manualSync(){await loadRemote(true)}
 async function persistTask(t){cache();renderAll();try{let j=await apiPost({action:'saveTask',data:toApi(t)});let saved=fromApi(j.data||toApi(t));let i=tasks.findIndex(x=>x.id===t.id);if(i>=0)tasks[i]=saved;cache();setSync(true,'已同步 Google Sheet','ok');renderAll()}catch(e){enqueue({action:'saveTask',data:toApi(t)});console.error(e)}}
 async function persistDelete(t){cache();renderAll();try{await apiPost({action:'deleteTask',id:t.id,title:t.title});setSync(true,'已同步 Google Sheet','ok')}catch(e){enqueue({action:'deleteTask',id:t.id,title:t.title});console.error(e)}}
@@ -167,7 +222,8 @@ async function toggleDone(id){
   const t=tasks.find(x=>String(x.id)===String(id));
   if(!t)return;
 
-  if(t.status==='已完成'){
+  const wasDone=t.status==='已完成';
+  if(wasDone){
     t.status='待處理';
     t.completed='';
   }else{
@@ -176,6 +232,14 @@ async function toggleDone(id){
   }
 
   await persistTask(t);
+  if(!wasDone){
+    try{
+      const data={taskId:t.id,caseId:t.project||'',title:t.title,category:t.category,action:'完成工作',
+        detail:'工作已完成',nextStep:'',status:'已完成',waitingFor:'',logDate:todayISO(),logTime:new Date().toTimeString().slice(0,5)};
+      const j=await apiPost({action:'addLog',data});
+      logs.push(fromApiLog(j.data||data));renderAll();
+    }catch(e){console.error('完成歷程寫入失敗',e)}
+  }
 }
 
 async function deleteTask(id){
@@ -238,7 +302,7 @@ function taskHtml(t){
       ${t.waitingFor?`<div class="side-row"><span class="side-label">👥 等待對象</span><span class="side-value">${esc(t.waitingFor)}</span></div>`:''}
       ${!t.due&&!t.followup&&!t.waitingFor?'<div class="muted">沒有其他日期或等待資訊</div>':''}
       <div class="task-actions">
-        <button type="button" class="btn" style="padding:6px 9px" onclick='editTask(${jsv(t.id)})'>編輯</button>
+        <button type="button" class="btn log-button" style="padding:6px 9px" onclick='openLogForm(${jsv(t.id)})'>＋處理紀錄</button> <button type="button" class="btn" style="padding:6px 9px" onclick='editTask(${jsv(t.id)})'>編輯</button>
         <button type="button" class="btn" style="padding:6px 9px" onclick='deleteTask(${jsv(t.id)})'>刪除</button>
       </div>
     </div>
@@ -246,16 +310,130 @@ function taskHtml(t){
 }
 function renderDashboard(){let today=todayISO(),d=new Date(),week=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'][d.getDay()];$('todayText').textContent=`${d.getFullYear()} 年 ${d.getMonth()+1} 月 ${d.getDate()} 日・${week}`;let td=tasks.filter(t=>t.status!=='已完成'&&((t.workDate&&t.workDate<=today)||(t.due&&t.due<=today)||(t.followup&&t.followup<=today)));let wait=tasks.filter(t=>t.status==='等待回覆');let weekStart=new Date(d);let day=d.getDay()||7;weekStart.setDate(d.getDate()-day+1);let ws=weekStart.getFullYear()+'-'+String(weekStart.getMonth()+1).padStart(2,'0')+'-'+String(weekStart.getDate()).padStart(2,'0'),we=addDays(ws,6);let done=tasks.filter(t=>t.status==='已完成'&&t.completed&&t.completed>=ws&&t.completed<=we);let overdue=tasks.filter(t=>t.status!=='已完成'&&t.due&&t.due<today);let weekTasks=tasks.filter(t=>t.status!=='已完成'&&((t.workDate&&t.workDate>today&&t.workDate<=we)||(!t.workDate&&t.due&&t.due>today&&t.due<=we)));$('kToday').textContent=td.length;$('kWaiting').textContent=wait.length;$('kDone').textContent=done.length;$('kOverdue').textContent=overdue.length;$('todayTasks').innerHTML=td.length?td.sort((a,b)=>(a.workDate||a.due||a.followup||'9999').localeCompare(b.workDate||b.due||b.followup||'9999')).map(taskHtml).join(''):'<div class="empty">今天沒有預計處理、到期或追蹤事項 🎉</div>';$('weekTasks').innerHTML=weekTasks.length?weekTasks.sort((a,b)=>(a.workDate||a.due||'9999').localeCompare(b.workDate||b.due||'9999')).map(taskHtml).join(''):'<div class="empty">本週沒有其他安排處理或即將到期事項</div>';$('waitingTasks').innerHTML=wait.length?wait.map(taskHtml).join(''):'<div class="empty">目前沒有等待回覆事項</div>';let workToday=tasks.filter(t=>t.status!=='已完成'&&t.workDate===today).length,dueToday=tasks.filter(t=>t.status!=='已完成'&&t.due===today).length,followToday=tasks.filter(t=>t.status==='等待回覆'&&t.followup===today).length;$('reminderNotice').innerHTML=(workToday||dueToday||followToday)?`<div class="notice">🔔 今天有 <b>${workToday}</b> 件預計處理、<b>${dueToday}</b> 件工作截止、<b>${followToday}</b> 件等待回覆需要追蹤。</div>`:''}
 function renderTasks(){let q=$('searchInput').value.toLowerCase(),c=$('filterCategory').value,s=$('filterStatus').value;let arr=tasks.filter(t=>(!q||`${t.title} ${t.note} ${t.project} ${t.waitingFor}`.toLowerCase().includes(q))&&(!c||t.category===c)&&(!s||t.status===s));$('taskList').innerHTML=arr.length?arr.sort((a,b)=>(a.workDate||a.due||a.followup||'9999').localeCompare(b.workDate||b.due||b.followup||'9999')).map(taskHtml).join(''):'<div class="empty">找不到符合條件的工作</div>'}
-function renderProjects(){let map={};tasks.forEach(t=>{if(t.project)(map[t.project]??=[]).push(t)});$('projectList').innerHTML=Object.keys(map).length?Object.entries(map).map(([p,arr])=>`<div class="history-card"><b>🗂️ ${esc(p)}</b><span class="muted">${arr.length} 筆紀錄・未完成 ${arr.filter(x=>x.status!=='已完成').length} 筆</span><div class="timeline">${arr.sort((a,b)=>(a.created||'').localeCompare(b.created||'')).map(x=>`<div class="event"><strong>${esc(x.title)}</strong><div style="font-size:13px;margin-top:4px">${x.workDate?`📅 預計處理：${fmt(x.workDate)}　`:''}${x.due?`⏰ 截止：${fmt(x.due)}　`:''}${x.followup?`🔔 追蹤：${fmt(x.followup)}`:''}</div><div class="muted" style="font-size:12px;margin-top:3px">建立於 ${fmt(x.created)}</div><div class="muted" style="font-size:13px;margin-top:3px">${esc(x.note||'')}</div></div>`).join('')}</div></div>`).join(''):'<div class="empty">尚未建立案件</div>'}
-function renderHistory(){let q=$('historySearch').value.toLowerCase();let arr=tasks.filter(t=>!q||`${t.title} ${t.note} ${t.category} ${t.project}`.toLowerCase().includes(q)).sort((a,b)=>(b.created||'').localeCompare(a.created||''));$('historyList').innerHTML=arr.length?arr.map(t=>`<div class="history-card"><b>${esc(t.title)}</b><span class="tag">${esc(t.category)}</span> <span class="tag ${tagClass(t.status)}">${esc(t.status)}</span><div style="margin-top:8px;font-size:13px">${t.workDate?`📅 預計處理：<b>${fmt(t.workDate)}</b>　`:''}${t.due?`⏰ 截止：<b>${fmt(t.due)}</b>　`:''}${t.followup?`🔔 追蹤：<b>${fmt(t.followup)}</b>`:''}</div><div class="muted" style="margin-top:5px;font-size:12px">🕘 建立於 ${fmt(t.created)}${t.completed?`　✅ 完成於 ${fmt(t.completed)}`:''}</div><div class="muted" style="margin-top:7px">${esc(t.note||'')}</div></div>`).join(''):'<div class="empty">尚無歷史紀錄</div>'}
-function renderReport(){let month=$('reportMonth').value||todayISO().slice(0,7);$('reportMonth').value=month;let a=tasks.filter(t=>(t.workDate&&t.workDate.startsWith(month))||(t.completed&&t.completed.startsWith(month))||(t.due&&t.due.startsWith(month)));let done=a.filter(x=>x.status==='已完成'&&x.completed?.startsWith(month)),open=a.filter(x=>x.status!=='已完成'),wait=open.filter(x=>x.status==='等待回覆');let html=`<div class="grid4"><div class="kpi"><div class="label">✅ 本月完成</div><div class="num">${done.length}</div></div><div class="kpi"><div class="label">📌 本月未結</div><div class="num">${open.length}</div></div><div class="kpi"><div class="label">⏳ 等待回覆</div><div class="num">${wait.length}</div></div><div class="kpi"><div class="label">🗂 涉及案件</div><div class="num">${new Set(a.map(x=>x.project).filter(Boolean)).size}</div></div></div>`;html+=categories.map(c=>{let x=a.filter(t=>t.category===c);if(!x.length)return'';return `<div class="history-card"><b>${c}</b><div class="muted">已完成 ${x.filter(t=>t.status==='已完成').length}｜未結 ${x.filter(t=>t.status!=='已完成').length}</div>${x.map(t=>`<div style="margin-top:7px">${t.status==='已完成'?'✓':'•'} ${esc(t.title)} <span class="tag ${tagClass(t.status)}">${t.status}</span></div>`).join('')}</div>`}).join('');$('reportBody').innerHTML=html}
-function renderAll(){renderDashboard();renderTasks();renderProjects();renderHistory();renderReport();checkOldDataHint()}
+function renderProjects(){
+  const q=($('projectSearch')?.value||'').trim().toLowerCase();
+  const projectNames=[...new Set([
+    ...tasks.map(t=>t.project).filter(Boolean),
+    ...logs.map(l=>l.project).filter(Boolean)
+  ])].filter(p=>{
+    if(!q)return true;
+    const relatedTasks=tasks.filter(t=>t.project===p);
+    const relatedLogs=logs.filter(l=>l.project===p);
+    return `${p} ${relatedTasks.map(t=>t.title+' '+t.note).join(' ')} ${relatedLogs.map(l=>l.detail+' '+l.nextStep).join(' ')}`.toLowerCase().includes(q);
+  });
+  $('projectList').innerHTML=projectNames.length?projectNames.sort().map(p=>{
+    const pts=tasks.filter(t=>t.project===p);
+    const pls=logs.filter(l=>l.project===p).sort((a,b)=>`${a.logDate} ${a.logTime}`.localeCompare(`${b.logDate} ${b.logTime}`));
+    const status=pts.some(t=>t.status!=='已完成')?'進行中':'已完成';
+    return `<div class="history-card"><b>🗂️ ${esc(p)}</b>
+      <div class="meta"><span class="tag ${tagClass(status)}">${status}</span><span class="tag">${pts.length} 筆工作</span><span class="tag">${pls.length} 筆處理歷程</span></div>
+      <div class="timeline">${pls.length?pls.map(l=>`<div class="event"><strong>${fmt(l.logDate)} ${esc(l.logTime||'')}</strong>　${esc(l.title||taskById(l.taskId)?.title||'')}</strong>
+        <div style="font-size:13px;margin-top:5px">${esc(l.detail)}</div>
+        ${l.nextStep?`<div style="font-size:13px;margin-top:4px"><b>下一步：</b>${esc(l.nextStep)}</div>`:''}
+        <div class="muted" style="font-size:12px;margin-top:3px">${l.status?`狀態：${esc(l.status)}　`:''}${l.waitingFor?`等待：${esc(l.waitingFor)}`:''}</div>
+      </div>`).join(''):'<div class="muted">尚未新增處理紀錄。</div>'}</div>
+    </div>`;
+  }).join(''):'<div class="empty">尚未建立可追蹤的案件，或沒有符合搜尋條件的案件。</div>'
+}
+
+function logsForDate(dateStr,q=''){
+  q=(q||'').trim().toLowerCase();
+  return logs.filter(l=>l.logDate===dateStr && (!q||`${l.title} ${l.category} ${l.project} ${l.detail} ${l.nextStep} ${l.waitingFor}`.toLowerCase().includes(q)))
+    .sort((a,b)=>(a.logTime||'99:99').localeCompare(b.logTime||'99:99'));
+}
+function renderJournal(){
+  const date=$('journalDate').value||todayISO();$('journalDate').value=date;
+  const arr=logsForDate(date,$('journalSearch').value);
+  const groups={'上午':[],'下午':[],'未分時段':[]};
+  arr.forEach(l=>groups[periodOf(l.logTime)].push(l));
+  let body='';
+  ['上午','下午','未分時段'].forEach(period=>{
+    if(!groups[period].length)return;
+    body+=`<div class="journal-period"><div class="journal-period-title">${period==='未分時段'?'全天／未指定時間':period}</div>`;
+    body+=groups[period].map(l=>`<div class="log-item"><div class="log-title">${l.logTime?esc(l.logTime)+'　':''}${esc(l.title||taskById(l.taskId)?.title||'')}</div>
+      <div class="meta" style="margin-top:5px">${l.category?`<span class="tag">${esc(l.category)}</span>`:''}${l.project?`<span class="tag">🗂 ${esc(l.project)}</span>`:''}${l.status?`<span class="tag ${tagClass(l.status)}">${esc(l.status)}</span>`:''}</div>
+      <div class="log-grid"><div class="k">本次處理</div><div class="v">${esc(l.detail)}</div>${l.nextStep?`<div class="k">下一步</div><div class="v">${esc(l.nextStep)}</div>`:''}${l.waitingFor?`<div class="k">等待對象</div><div class="v">${esc(l.waitingFor)}</div>`:''}</div></div>`).join('');
+    body+='</div>';
+  });
+  $('journalList').innerHTML=`<div class="journal-day"><div class="journal-head"><div><div class="journal-date">${fmt(date)}（${weekdayZh(date)}）</div><div class="small-note">${arr.length} 筆實際處理紀錄</div></div></div>${body||'<div class="empty">這一天尚未新增處理紀錄。</div>'}</div>`;
+}
+function moveJournalDate(n){$('journalDate').value=addDays($('journalDate').value||todayISO(),n);renderJournal()}
+function setJournalToday(){$('journalDate').value=todayISO();renderJournal()}
+
+function renderHistory(){
+  const q=($('historySearch').value||'').trim().toLowerCase();
+  const start=$('historyStart').value,end=$('historyEnd').value,cat=$('historyCategory').value;
+  const arr=logs.filter(l=>{
+    if(start&&l.logDate<start)return false;if(end&&l.logDate>end)return false;if(cat&&l.category!==cat)return false;
+    return !q||`${l.title} ${l.category} ${l.project} ${l.detail} ${l.nextStep} ${l.waitingFor} ${l.status}`.toLowerCase().includes(q);
+  }).sort((a,b)=>`${b.logDate} ${b.logTime}`.localeCompare(`${a.logDate} ${a.logTime}`));
+  $('historyList').innerHTML=arr.length?arr.map(l=>`<div class="search-result">
+    <b>${fmt(l.logDate)} ${esc(l.logTime||'')}｜${esc(l.title||taskById(l.taskId)?.title||'')}</b>
+    <div class="meta" style="margin-top:6px">${l.category?`<span class="tag">${esc(l.category)}</span>`:''}${l.project?`<span class="tag">🗂 ${esc(l.project)}</span>`:''}${l.status?`<span class="tag ${tagClass(l.status)}">${esc(l.status)}</span>`:''}</div>
+    <div class="log-grid"><div class="k">本次處理</div><div class="v">${esc(l.detail)}</div>${l.nextStep?`<div class="k">下一步</div><div class="v">${esc(l.nextStep)}</div>`:''}${l.waitingFor?`<div class="k">等待對象</div><div class="v">${esc(l.waitingFor)}</div>`:''}</div>
+  </div>`).join(''):'<div class="empty">沒有符合條件的處理歷程。</div>'
+}
+function clearHistoryFilters(){$('historySearch').value='';$('historyStart').value='';$('historyEnd').value='';$('historyCategory').value='';renderHistory()}
+
+function renderReport(){
+  const month=$('reportMonth').value||todayISO().slice(0,7);$('reportMonth').value=month;
+  const ml=logs.filter(l=>l.logDate&&l.logDate.startsWith(month));
+  const monthTasks=tasks.filter(t=>(t.workDate&&t.workDate.startsWith(month))||(t.completed&&t.completed.startsWith(month)));
+  const completed=monthTasks.filter(t=>t.completed&&t.completed.startsWith(month));
+  const waiting=tasks.filter(t=>t.status==='等待回覆');
+  const projects=new Set(ml.map(l=>l.project).filter(Boolean));
+  let html=`<div class="grid4">
+    <div class="kpi"><div class="label">📝 實際處理紀錄</div><div class="num">${ml.length}</div><small>依處理日期計算</small></div>
+    <div class="kpi"><div class="label">✅ 本月完成</div><div class="num">${completed.length}</div><small>完成工作</small></div>
+    <div class="kpi"><div class="label">⏳ 目前等待回覆</div><div class="num">${waiting.length}</div><small>仍需追蹤</small></div>
+    <div class="kpi"><div class="label">🗂 涉及案件</div><div class="num">${projects.size}</div><small>本月有處理紀錄</small></div>
+  </div>`;
+  html+=`<div class="history-card"><b>本月工作摘要</b><div class="report-note">Excel 會包含三個工作表：①「工作日誌」依日期／上午下午整理，版型接近原本工作日誌；②「處理明細」每次處理一列，可篩選與做 Power BI；③「月報摘要」依工作類別統計。</div></div>`;
+  categories.forEach(c=>{
+    const cl=ml.filter(l=>l.category===c);if(!cl.length)return;
+    html+=`<div class="history-card"><b>${esc(c)}</b><div class="muted">${cl.length} 筆處理紀錄</div>${cl.slice(0,8).map(l=>`<div style="margin-top:7px">• ${fmt(l.logDate)} ${esc(l.title||'')}：${esc(l.detail)}</div>`).join('')}${cl.length>8?`<div class="muted" style="margin-top:8px">另有 ${cl.length-8} 筆，匯出 Excel 可查看完整內容。</div>`:''}</div>`;
+  });
+  $('reportBody').innerHTML=html;
+}
+async function exportJournalExcel(btn){
+  const month=$('reportMonth').value||todayISO().slice(0,7);
+  if(!month){alert('請先選擇月份');return}
+  if(btn){btn.disabled=true;btn.textContent='正在產生 Excel…'}
+  try{
+    const j=await apiPost({action:'exportJournalExcel',month});
+    const bytes=Uint8Array.from(atob(j.base64),c=>c.charCodeAt(0));
+    const blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=j.fileName||`${month}_工作日誌.xlsx`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);
+  }catch(e){alert('Excel 匯出失敗：'+e.message)}
+  finally{if(btn){btn.disabled=false;btn.textContent='⬇ 匯出 Excel 工作日誌'}}
+}
+function renderAll(){renderDashboard();renderTasks();renderProjects();renderJournal();renderHistory();renderReport();checkOldDataHint()}
+
+function openLogForm(id){
+  const t=taskById(id);if(!t)return;
+  const f=$('logForm');f.reset();f.elements.taskId.value=t.id;f.elements.logDate.value=todayISO();f.elements.logTime.value=new Date().toTimeString().slice(0,5);
+  f.elements.status.value=t.status||'進行中';f.elements.waitingFor.value=t.waitingFor||'';f.elements.followDate.value=t.followup||'';
+  $('logTaskTitle').textContent=t.title;$('logModal').classList.remove('hidden');
+}
+function closeLogForm(){$('logModal').classList.add('hidden')}
+$('logForm').onsubmit=async e=>{
+  e.preventDefault();const f=new FormData(e.target),t=taskById(f.get('taskId'));if(!t)return;
+  const data={taskId:t.id,caseId:t.project||'',title:t.title,category:t.category,action:'處理紀錄',detail:f.get('detail'),nextStep:f.get('nextStep'),status:f.get('status'),waitingFor:f.get('waitingFor'),logDate:f.get('logDate'),logTime:f.get('logTime')};
+  try{
+    const j=await apiPost({action:'addLog',data});logs.push(fromApiLog(j.data||data));
+    t.status=f.get('status');t.waitingFor=f.get('waitingFor');if(f.get('followDate'))t.followup=f.get('followDate');
+    if(t.status==='已完成'&&!t.completed)t.completed=f.get('logDate')||todayISO();
+    if(t.status!=='已完成')t.completed='';
+    await persistTask(t);closeLogForm();renderAll();
+  }catch(err){alert('儲存處理紀錄失敗：'+err.message)}
+};
+
 function openTaskForm(){editId=null;$('modalTitle').textContent='新增工作';$('taskForm').reset();$('modal').classList.remove('hidden')}
 function closeTaskForm(){$('modal').classList.add('hidden')}
 function editTask(id){let t=tasks.find(x=>String(x.id)===String(id));if(!t)return;editId=String(id);$('modalTitle').textContent='編輯工作';let f=$('taskForm');['title','category','status','priority','workDate','workTime','due','followup','waitingFor','project','note'].forEach(k=>f.elements[k].value=t[k]||'');f.elements.id.value=id;$('modal').classList.remove('hidden')}
 $('taskForm').onsubmit=async e=>{e.preventDefault();let f=new FormData(e.target),obj={title:f.get('title'),category:f.get('category'),status:f.get('status'),priority:f.get('priority'),workDate:f.get('workDate'),workTime:f.get('workTime'),due:f.get('due'),followup:f.get('followup'),waitingFor:f.get('waitingFor'),project:f.get('project'),note:f.get('note')};let t;if(editId){t=tasks.find(x=>String(x.id)===String(editId));let was=t.status;Object.assign(t,obj);if(obj.status==='已完成'&&!t.completed)t.completed=todayISO();if(obj.status!=='已完成'&&was==='已完成')t.completed=''}else{t={id:clientId(),...obj,created:todayISO(),completed:obj.status==='已完成'?todayISO():''};tasks.push(t)}closeTaskForm();await persistTask(t)};
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));$(b.dataset.view).classList.remove('hidden')});
-$('categorySelect').innerHTML=categories.map(c=>`<option>${c}</option>`).join('');$('filterCategory').innerHTML='<option value="">全部類別</option>'+categories.map(c=>`<option>${c}</option>`).join('');$('searchInput').oninput=renderTasks;$('filterCategory').onchange=renderTasks;$('filterStatus').onchange=renderTasks;$('historySearch').oninput=renderHistory;$('reportMonth').onchange=renderReport;$('quickInput').addEventListener('keydown',e=>{if(e.key==='Enter')quickAdd()});
+$('categorySelect').innerHTML=categories.map(c=>`<option>${c}</option>`).join('');$('filterCategory').innerHTML='<option value="">全部類別</option>'+categories.map(c=>`<option>${c}</option>`).join('');$('historyCategory').innerHTML='<option value="">全部類別</option>'+categories.map(c=>`<option>${c}</option>`).join('');$('searchInput').oninput=renderTasks;$('filterCategory').onchange=renderTasks;$('filterStatus').onchange=renderTasks;$('projectSearch').oninput=renderProjects;$('journalDate').value=todayISO();$('journalDate').onchange=renderJournal;$('journalSearch').oninput=renderJournal;$('historySearch').oninput=renderHistory;$('historyStart').onchange=renderHistory;$('historyEnd').onchange=renderHistory;$('historyCategory').onchange=renderHistory;$('reportMonth').onchange=renderReport;$('quickInput').addEventListener('keydown',e=>{if(e.key==='Enter')quickAdd()});
 function oldLocalTasks(){try{return JSON.parse(localStorage.getItem(OLD_KEY)||'[]')||[]}catch(e){return[]}}
 function checkOldDataHint(){let old=oldLocalTasks();let b=$('importOldBtn'),h=$('oldDataHint');if(!b||!h)return;if(old.length){b.disabled=false;h.textContent=`此裝置偵測到舊版本 ${old.length} 筆本機資料；需要時可匯入 Google Sheet。`}else{b.disabled=true;h.textContent='此裝置沒有偵測到舊版本本機資料。'}}
 async function importOldLocalData(){let old=oldLocalTasks();if(!old.length)return;if(!confirm(`要將舊版本 ${old.length} 筆資料匯入 Google Sheet 嗎？\n相同內容若已存在，可能會產生重複資料。`))return;setSync(false,'正在匯入舊版資料…','busy');let n=0;for(let x of old){let t={id:clientId(),title:x.title||'',category:x.category||'臨時交辦業務',status:x.status||'待處理',priority:x.priority||'一般',workDate:x.workDate||'',workTime:x.workTime||'',due:x.due||'',followup:x.followup||'',waitingFor:x.waitingFor||'',project:x.project||'',note:x.note||'',created:x.created||todayISO(),completed:x.completed||''};try{await apiPost({action:'saveTask',data:toApi(t)});n++}catch(e){enqueue({action:'saveTask',data:toApi(t)})}}alert(`已處理 ${n} 筆匯入；若有離線待同步資料，系統會在下次同步時補送。`);await loadRemote(true)}
@@ -265,7 +443,7 @@ function checkNotifications(){if(!('Notification'in window)||Notification.permis
 let deferredPrompt;$('installBtn').onclick=async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('installBtn').style.display='none'};window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBtn').style.display='inline-block'});if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 window.addEventListener('online',()=>loadRemote(false));window.addEventListener('offline',()=>setSync(false,'裝置目前離線・資料會先保存在本機','err'));
 renderAll();loadRemote(true);
-</script><div class="build-version">版本 4.3｜完成刪除修正版</div>
+</script><div class="build-version">版本 5.0｜工作日誌＋報告版</div>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
