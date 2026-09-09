@@ -1,4 +1,4 @@
-const CACHE='work-manager-v9-journal-report';
+const CACHE='work-manager-v10-browser-excel';
 const STATIC_ASSETS=['./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install', event => {

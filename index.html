@@ -388,24 +388,149 @@ function renderReport(){
     <div class="kpi"><div class="label">⏳ 目前等待回覆</div><div class="num">${waiting.length}</div><small>仍需追蹤</small></div>
     <div class="kpi"><div class="label">🗂 涉及案件</div><div class="num">${projects.size}</div><small>本月有處理紀錄</small></div>
   </div>`;
-  html+=`<div class="history-card"><b>本月工作摘要</b><div class="report-note">Excel 會包含三個工作表：①「工作日誌」依日期／上午下午整理，版型接近原本工作日誌；②「處理明細」每次處理一列，可篩選與做 Power BI；③「月報摘要」依工作類別統計。</div></div>`;
+  html+=`<div class="history-card"><b>本月工作摘要</b><div class="report-note">Excel 由網頁直接產生，不需要額外 Google 授權。會包含三個工作表：①「工作日誌」依日期／上午下午整理；②「處理明細」每次處理一列；③「月報摘要」依工作類別統計。</div></div>`;
   categories.forEach(c=>{
     const cl=ml.filter(l=>l.category===c);if(!cl.length)return;
     html+=`<div class="history-card"><b>${esc(c)}</b><div class="muted">${cl.length} 筆處理紀錄</div>${cl.slice(0,8).map(l=>`<div style="margin-top:7px">• ${fmt(l.logDate)} ${esc(l.title||'')}：${esc(l.detail)}</div>`).join('')}${cl.length>8?`<div class="muted" style="margin-top:8px">另有 ${cl.length-8} 筆，匯出 Excel 可查看完整內容。</div>`:''}</div>`;
   });
   $('reportBody').innerHTML=html;
 }
-async function exportJournalExcel(btn){
+function xmlEsc(v){
+  return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+}
+function excelCell(v,style=''){
+  const isNum=typeof v==='number' && isFinite(v);
+  return `<Cell${style?` ss:StyleID="${style}"`:''}><Data ss:Type="${isNum?'Number':'String'}">${xmlEsc(v)}</Data></Cell>`;
+}
+function excelRow(cells,height=''){
+  return `<Row${height?` ss:Height="${height}"`:''}>${cells.join('')}</Row>`;
+}
+function groupLogsForJournal(month){
+  const arr=logs.filter(l=>l.logDate&&l.logDate.startsWith(month) && l.action!=='刪除工作')
+    .sort((a,b)=>`${a.logDate} ${a.logTime||''}`.localeCompare(`${b.logDate} ${b.logTime||''}`));
+  const byDate={};
+  arr.forEach(l=>{
+    const d=l.logDate;
+    const period=l.logTime?(l.logTime<'12:00'?'上午':'下午'):'全天';
+    byDate[d]??={上午:[],下午:[],全天:[]};
+    byDate[d][period].push(l);
+  });
+  return {arr,byDate};
+}
+function exportJournalExcel(btn){
   const month=$('reportMonth').value||todayISO().slice(0,7);
   if(!month){alert('請先選擇月份');return}
   if(btn){btn.disabled=true;btn.textContent='正在產生 Excel…'}
   try{
-    const j=await apiPost({action:'exportJournalExcel',month});
-    const bytes=Uint8Array.from(atob(j.base64),c=>c.charCodeAt(0));
-    const blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=j.fileName||`${month}_工作日誌.xlsx`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);
-  }catch(e){alert('Excel 匯出失敗：'+e.message)}
-  finally{if(btn){btn.disabled=false;btn.textContent='⬇ 匯出 Excel 工作日誌'}}
+    const {arr,byDate}=groupLogsForJournal(month);
+    const completed=tasks.filter(t=>t.completed&&t.completed.startsWith(month)).length;
+    const waiting=tasks.filter(t=>t.status==='等待回覆').length;
+    const projects=new Set(arr.map(l=>l.project).filter(Boolean)).size;
+    const categoryCounts={};arr.forEach(l=>categoryCounts[l.category||'其他']=(categoryCounts[l.category||'其他']||0)+1);
+
+    // Sheet 1: 工作日誌
+    let journalRows=[];
+    journalRows.push(`<Row ss:Height="26"><Cell ss:MergeAcross="4" ss:StyleID="Title"><Data ss:Type="String">${xmlEsc(month.replace('-','年')+'月 工作日誌')}</Data></Cell></Row>`);
+    journalRows.push(excelRow([
+      excelCell('日期','HeaderGold'),excelCell('星期','HeaderGold'),excelCell('時段','HeaderGold'),
+      excelCell('工作內容','HeaderGold'),excelCell('待辦事項進度','HeaderPurple')
+    ],24));
+
+    Object.keys(byDate).sort().forEach(date=>{
+      ['上午','下午','全天'].forEach(period=>{
+        const ls=byDate[date][period];
+        if(!ls.length)return;
+        const cats={};
+        ls.forEach(l=>{(cats[l.category||'其他']??=[]).push(l)});
+        const content=[],follow=[];
+        Object.entries(cats).forEach(([cat,items],ci)=>{
+          content.push(`${['一','二','三','四','五','六','七','八','九','十'][ci]||ci+1}、${cat}：`);
+          items.forEach((l,i)=>{
+            const tm=l.logTime?l.logTime+' ':'';
+            content.push(`(${i+1}) ${tm}${l.title||''}：${l.detail||''}`);
+            let f=[];
+            if(l.nextStep) f.push(l.nextStep);
+            if(l.waitingFor) f.push('等待：'+l.waitingFor);
+            if(l.status) f.push('狀態：'+l.status);
+            if(f.length) follow.push(`${l.title||''}－${f.join('；')}`);
+          });
+        });
+        journalRows.push(excelRow([
+          excelCell(fmt(date),'Center'), excelCell(weekdayZh(date),'Center'), excelCell(period,'Center'),
+          excelCell(content.join('\n'),'Wrap'), excelCell(follow.join('\n'),'Wrap')
+        ],56));
+      });
+    });
+    if(!arr.length){
+      journalRows.push(excelRow([excelCell('','',''),excelCell('','',''),excelCell('','',''),excelCell('本月尚無處理紀錄','Wrap'),excelCell('','Wrap')],40));
+    }
+
+    // Sheet 2: 處理明細
+    let detailRows=[excelRow([
+      ...['日期','星期','時間','時段','工作事項','工作類別','案件','本次處理','下一步','狀態','等待對象'].map(h=>excelCell(h,'HeaderPurple'))
+    ],24)];
+    arr.forEach(l=>{
+      detailRows.push(excelRow([
+        excelCell(fmt(l.logDate),'Center'),excelCell(weekdayZh(l.logDate),'Center'),excelCell(l.logTime||'','Center'),
+        excelCell(periodOf(l.logTime),'Center'),excelCell(l.title||''),excelCell(l.category||''),excelCell(l.project||''),
+        excelCell(l.detail||'','Wrap'),excelCell(l.nextStep||'','Wrap'),excelCell(l.status||'','Center'),excelCell(l.waitingFor||'')
+      ],40));
+    });
+
+    // Sheet 3: 月報摘要
+    let summaryRows=[];
+    summaryRows.push(`<Row ss:Height="26"><Cell ss:MergeAcross="3" ss:StyleID="Title"><Data ss:Type="String">${xmlEsc(month.replace('-','年')+'月 工作摘要')}</Data></Cell></Row>`);
+    summaryRows.push(excelRow([excelCell('指標','HeaderGold'),excelCell('數值','HeaderGold'),excelCell('工作類別','HeaderPurple'),excelCell('處理紀錄數','HeaderPurple')],24));
+    const metrics=[['實際處理紀錄',arr.length],['完成工作',completed],['目前等待回覆',waiting],['涉及案件',projects]];
+    const cats=Object.entries(categoryCounts).sort((a,b)=>b[1]-a[1]);
+    const n=Math.max(metrics.length,cats.length);
+    for(let i=0;i<n;i++){
+      summaryRows.push(excelRow([
+        excelCell(metrics[i]?.[0]||''),excelCell(metrics[i]?.[1]??''),
+        excelCell(cats[i]?.[0]||''),excelCell(cats[i]?.[1]??'')
+      ],24));
+    }
+
+    const xml=`<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+ <Styles>
+  <Style ss:ID="Default" ss:Name="Normal"><Alignment ss:Vertical="Top"/><Font ss:FontName="Microsoft JhengHei" ss:Size="11"/></Style>
+  <Style ss:ID="Title"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Font ss:Bold="1" ss:Size="16"/><Interior ss:Color="#EDE4F5" ss:Pattern="Solid"/></Style>
+  <Style ss:ID="HeaderGold"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Font ss:Bold="1"/><Interior ss:Color="#F7D64A" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/></Borders></Style>
+  <Style ss:ID="HeaderPurple"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Font ss:Bold="1"/><Interior ss:Color="#E9D9F1" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/></Borders></Style>
+  <Style ss:ID="Center"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/></Borders></Style>
+  <Style ss:ID="Wrap"><Alignment ss:Vertical="Top" ss:WrapText="1"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/></Borders></Style>
+ </Styles>
+ <Worksheet ss:Name="工作日誌"><Table>
+  <Column ss:Width="80"/><Column ss:Width="45"/><Column ss:Width="50"/><Column ss:Width="420"/><Column ss:Width="340"/>
+  ${journalRows.join('')}
+ </Table><WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel"><FreezePanes/><FrozenNoSplit/><SplitHorizontal>2</SplitHorizontal><TopRowBottomPane>2</TopRowBottomPane></WorksheetOptions></Worksheet>
+ <Worksheet ss:Name="處理明細"><Table>
+  <Column ss:Width="80"/><Column ss:Width="45"/><Column ss:Width="55"/><Column ss:Width="50"/><Column ss:Width="180"/><Column ss:Width="110"/><Column ss:Width="150"/><Column ss:Width="300"/><Column ss:Width="260"/><Column ss:Width="80"/><Column ss:Width="120"/>
+  ${detailRows.join('')}
+ </Table></Worksheet>
+ <Worksheet ss:Name="月報摘要"><Table>
+  <Column ss:Width="140"/><Column ss:Width="80"/><Column ss:Width="160"/><Column ss:Width="90"/>
+  ${summaryRows.join('')}
+ </Table></Worksheet>
+</Workbook>`;
+
+    const blob=new Blob(['\ufeff'+xml],{type:'application/vnd.ms-excel;charset=utf-8'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=`${month}_工作日誌.xls`;
+    document.body.appendChild(a);a.click();
+    setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);
+  }catch(e){
+    console.error(e);
+    alert('Excel 匯出失敗：'+e.message);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='⬇ 匯出 Excel 工作日誌'}
+  }
 }
 function renderAll(){renderDashboard();renderTasks();renderProjects();renderJournal();renderHistory();renderReport();checkOldDataHint()}
 
@@ -443,7 +568,7 @@ function checkNotifications(){if(!('Notification'in window)||Notification.permis
 let deferredPrompt;$('installBtn').onclick=async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('installBtn').style.display='none'};window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBtn').style.display='inline-block'});if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 window.addEventListener('online',()=>loadRemote(false));window.addEventListener('offline',()=>setSync(false,'裝置目前離線・資料會先保存在本機','err'));
 renderAll();loadRemote(true);
-</script><div class="build-version">版本 5.0｜工作日誌＋報告版</div>
+</script><div class="build-version">版本 5.1｜免授權 Excel 匯出版</div>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
