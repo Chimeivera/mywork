@@ -1,4 +1,4 @@
-const CACHE='work-manager-v10-browser-excel';
+const CACHE='work-manager-v11-history-edit';
 const STATIC_ASSETS=['./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install', event => {
