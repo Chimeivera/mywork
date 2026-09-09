@@ -1,4 +1,4 @@
-const CACHE='work-manager-v7-time-fixed';
+const CACHE='work-manager-v8-actions-fixed';
 const STATIC_ASSETS=['./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install', event => {

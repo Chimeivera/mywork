@@ -163,6 +163,35 @@ async function manualSync(){await loadRemote(true)}
 async function persistTask(t){cache();renderAll();try{let j=await apiPost({action:'saveTask',data:toApi(t)});let saved=fromApi(j.data||toApi(t));let i=tasks.findIndex(x=>x.id===t.id);if(i>=0)tasks[i]=saved;cache();setSync(true,'已同步 Google Sheet','ok');renderAll()}catch(e){enqueue({action:'saveTask',data:toApi(t)});console.error(e)}}
 async function persistDelete(t){cache();renderAll();try{await apiPost({action:'deleteTask',id:t.id,title:t.title});setSync(true,'已同步 Google Sheet','ok')}catch(e){enqueue({action:'deleteTask',id:t.id,title:t.title});console.error(e)}}
 
+async function toggleDone(id){
+  const t=tasks.find(x=>String(x.id)===String(id));
+  if(!t)return;
+
+  if(t.status==='已完成'){
+    t.status='待處理';
+    t.completed='';
+  }else{
+    t.status='已完成';
+    t.completed=todayISO();
+  }
+
+  await persistTask(t);
+}
+
+async function deleteTask(id){
+  const t=tasks.find(x=>String(x.id)===String(id));
+  if(!t)return;
+
+  const ok=confirm(`確定要刪除「${t.title}」嗎？\n刪除後會同步移除 Google Sheet 的這筆工作。`);
+  if(!ok)return;
+
+  tasks=tasks.filter(x=>String(x.id)!==String(id));
+  cache();
+  renderAll();
+  await persistDelete(t);
+}
+
+
 function workDateInfo(t){
   if(!t.workDate) return null;
   const d=new Date(t.workDate+'T00:00:00');
@@ -191,7 +220,7 @@ function taskHtml(t){
     : `<div class="task-datebox"><div class="no-workdate">尚未安排<br>處理日期</div></div>`;
 
   return `<div class="task">
-    <div class="check ${t.status==='已完成'?'done':''}" onclick='toggleDone(${jsv(t.id)})'></div>
+    <div class="check ${t.status==='已完成'?'done':''}" role="button" tabindex="0" title="${t.status==='已完成'?'取消完成':'標記已完成'}" onclick='toggleDone(${jsv(t.id)})' onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleDone(${jsv(t.id)})}"></div>
     ${dateBox}
     <div class="task-main">
       <h3>${esc(t.title)}</h3>
@@ -209,8 +238,8 @@ function taskHtml(t){
       ${t.waitingFor?`<div class="side-row"><span class="side-label">👥 等待對象</span><span class="side-value">${esc(t.waitingFor)}</span></div>`:''}
       ${!t.due&&!t.followup&&!t.waitingFor?'<div class="muted">沒有其他日期或等待資訊</div>':''}
       <div class="task-actions">
-        <button class="btn" style="padding:6px 9px" onclick='editTask(${jsv(t.id)})'>編輯</button>
-        <button class="btn" style="padding:6px 9px" onclick='deleteTask(${jsv(t.id)})'>刪除</button>
+        <button type="button" class="btn" style="padding:6px 9px" onclick='editTask(${jsv(t.id)})'>編輯</button>
+        <button type="button" class="btn" style="padding:6px 9px" onclick='deleteTask(${jsv(t.id)})'>刪除</button>
       </div>
     </div>
   </div>`
@@ -236,7 +265,7 @@ function checkNotifications(){if(!('Notification'in window)||Notification.permis
 let deferredPrompt;$('installBtn').onclick=async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('installBtn').style.display='none'};window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBtn').style.display='inline-block'});if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 window.addEventListener('online',()=>loadRemote(false));window.addEventListener('offline',()=>setSync(false,'裝置目前離線・資料會先保存在本機','err'));
 renderAll();loadRemote(true);
-</script><div class="build-version">版本 4.2｜日期＋時間版</div>
+</script><div class="build-version">版本 4.3｜完成刪除修正版</div>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
