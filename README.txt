@@ -1,6 +1,6 @@
-個人工作管理系統 v6.3｜快速同步版
-
-GitHub 上傳：index.html、sw.js、manifest.webmanifest、icon-192.png、icon-512.png。
-Apps Script 與 Google Sheets 不需修改。
-
-本版：儲存後立即更新畫面，Google Sheets 改為背景同步；同步失敗會保留待同步佇列，恢復網路後自動重試。
+v6.4 未排程提醒＋美化月報
+- 首頁與日曆固定提醒未排程工作
+- 可一鍵排入今天
+- 報告與匯出排除刪除動作
+- 匯出改為有排版的 Excel .xls（瀏覽器直接產生，不用 Apps Script 權限）
+- 保留 v6.3 快速背景同步與 v6.3.1 日曆切換修正
